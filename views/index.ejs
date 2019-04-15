@@ -47,10 +47,9 @@
       #div-progress{
         display:none;
       }
-
-      .div-favorite{
-      }
-      #btn-smb-f{
+      #smb-button-favorite,
+      #sftp-button-favorite{
+        display: none;
       }
     </style>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
@@ -77,12 +76,27 @@
           $("#file-icon").append("<i class=\"far fa-arrow-alt-circle-left\"></i>");
           $("#file-icon").append("<i class=\"far fa-copy\"></i>");
         });
-        $("#sftp-favorite-list").hover(()=>{
-          console.log("list");
-          $("#btn-sftp-f").slideUp("fast");
+        /* S:animation */
+        $("#btn-smb-f").hover(()=>{
+          $("#div-smb-f").slideUp("fast");
+          $("#smb-button-favorite").slideDown("fast");
+        });
+        $("#smb-button-favorite").hover(()=>{
         }, ()=>{
-          $("#btn-sftp-f").slideDown("fast");
-        })
+          $("#div-smb-f").slideDown("fast");
+          $("#smb-button-favorite").slideUp("fast");
+        });
+
+        $("#btn-sftp-f").hover(()=>{
+          $("#div-sftp-f").slideUp("fast");
+          $("#sftp-button-favorite").slideDown("fast");
+        });
+        $("#sftp-button-favorite").hover(()=>{
+        }, ()=>{
+          $("#div-sftp-f").slideDown("fast");
+          $("#sftp-button-favorite").slideUp("fast");
+        });
+        /* E:animation */
       });
 
       dataLoad = ( list_data ) => {
@@ -380,10 +394,10 @@
             <span class="title-path">Current : <%=smb_default%></span><br><span id="smb_current_path"></span><button type="button" id="smb-favorite" class="btn btn-light text-warning ml-3" onclick="handleFavorite('smb')"></button>
           </div>
           <div id="smb-favorite-list" class="btn-group-vertical w-100">
-            <div class="div-favorite text-dark w-100 mt-1">
+            <div id="div-smb-f" class="div-favorite text-dark w-100 my-1">
               <button type="button" id="btn-smb-f" class="btn btn-warning text-warning w-100"><i class="fas fa-star text-light"></i></button>
             </div>
-            <div id="smb-button-favorite" class="list-group mb-1 w-100"></div>
+            <div id="smb-button-favorite" class="list-group my-1 w-100"></div>
           </div>
 
           <div id="smb-dir-list" class="list-group mb-5"></div>
@@ -400,10 +414,10 @@
             <span class="title-path">Current : <%=sftp_default%></span><br><span id="sftp_current_path"></span><button type="button" id="sftp-favorite" class="btn btn-light text-warning ml-3" onclick="handleFavorite('sftp')"></button>
           </div>
           <div id="sftp-favorite-list " class="btn-group-vertical w-100">
-            <div class="div-favorite text-dark w-100 mt-1">
+            <div id="div-sftp-f" class="div-favorite text-dark w-100 mt-1">
               <button type="button" id="btn-sftp-f" class="btn btn-warning text-warning w-100"><i class="fas fa-star text-light"></i></button>
             </div>
-            <div id="sftp-button-favorite" class="list-group mb-1 w-100"></div>
+            <div id="sftp-button-favorite" class="list-group my-1 w-100"></div>
           </div>
           <div class="input-group mt-2 mb-1">
             <div class="input-group-prepend">
