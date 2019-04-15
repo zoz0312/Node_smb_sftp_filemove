@@ -1,0 +1,15 @@
+{
+    "sftp_favorite":[],
+    "smb_favorite":[],
+    "smb":{
+        "path":"",
+        "username":"",
+        "password":"",
+        "domain":"WORKGROUP"
+    },
+    "sftp":{
+        "host":"",
+        "username":"",
+        "password":""
+    }
+}

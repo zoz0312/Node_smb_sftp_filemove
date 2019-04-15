@@ -1,0 +1,67 @@
+@media only screen 
+and (max-width : 991px)
+{
+  button{
+    font-size: .6rem !important;
+  }
+  #sftp_current_path,
+  #smb_current_path{
+    font-size: .6rem !important;
+  }
+  #smb-block,
+  #sftp-block{
+    width: 92%;
+  }
+  .title-path{
+    font-size: 1rem !important;
+  }
+  #basic-addon3,
+  #file-name{
+    font-size: .6rem !important;
+  }
+}
+@media only screen 
+and (min-width : 992px)
+and (max-width : 1199px)
+{
+  button{
+    font-size: .8rem !important;
+  }
+  #sftp_current_path,
+  #smb_current_path{
+    font-size: .8rem !important;
+  }
+  #smb-block,
+  #sftp-block{
+    width: 94%;
+  }
+  .title-path{
+    font-size: 1.2rem !important;
+  }
+  #basic-addon3,
+  #file-name{
+    font-size: .8rem !important;
+  }
+}
+@media only screen 
+and (min-width : 1200px)
+{
+  button{
+    font-size: 1rem !important;
+  }
+  #sftp_current_path,
+  #smb_current_path{
+    font-size: 1rem !important;
+  }
+  #smb-block,
+  #sftp-block{
+    width: 95%;
+  }
+  .title-path{
+    font-size: 1.6rem !important;
+  }
+  #basic-addon3,
+  #file-name{
+    font-size: 1rem !important;
+  }
+}

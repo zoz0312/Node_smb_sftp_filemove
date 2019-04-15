@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="./stylesheets/style.css" crossorigin="anonymous">
+    <style rel='stylesheet' type="text/css">
+      .w-35{
+        width: 35%;
+      }
+      .hx-200{
+        height: 200px;
+      }
+      .chk-btn{
+        margin-bottom: -1px;
+        padding-left: 1rem !important;
+      }
+      .wx-51{
+        width: 51px;
+      }
+      .fa-arrow-alt-circle-left{
+        margin-right: 2px;
+      }
+      .btn-spinner{
+        width: 1rem !important; 
+        height: 1rem !important; 
+        border-width: .1em;
+      }
+      #copy-spinner{
+        display: none;
+      }
+      #smb-block,
+      #sftp-block{
+        display: none;
+        position: absolute;
+        height: 99%;
+        margin-right:15px;
+        background-color: #333333;
+        opacity: 0.7;
+        z-index: 100;
+      }
+      #smb-spinner,
+      #sftp-spinner{
+        margin-top:100px;
+      }
+      #div-progress{
+        display:none;
+      }
+
+      .div-favorite{
+      }
+      #btn-smb-f{
+      }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+      var sftp_interval = null;
+      var copy_interval = null;
+      var file_move_flag = false;
+      var smb_current_path = "<%= smb_path %>";
+      var sftp_current_path = "<%= sftp_path %>";
+      var config_smb_favofite = "<%=smb_favorite%>";
+      var config_sftp_favofite = "<%=sftp_favorite%>";
+
+      $( document ).ready(function() {
+        handleShowSmbDir("", false);
+        FavoriteLoad( config_smb_favofite.split(","), "smb" );
+        FavoriteLoad( config_sftp_favofite.split(","), "sftp" );
+        sftpDataMake("", false);
+        $("#btn-move").hover(()=>{
+          $("#file-icon *").remove();
+          $("#file-icon").append("<i class=\"fas fa-arrow-alt-circle-left\"></i>");
+          $("#file-icon").append("<i class=\"fas fa-copy\"></i>");
+        }, ()=>{
+          $("#file-icon *").remove();
+          $("#file-icon").append("<i class=\"far fa-arrow-alt-circle-left\"></i>");
+          $("#file-icon").append("<i class=\"far fa-copy\"></i>");
+        });
+        $("#sftp-favorite-list").hover(()=>{
+          console.log("list");
+          $("#btn-sftp-f").slideUp("fast");
+        }, ()=>{
+          $("#btn-sftp-f").slideDown("fast");
+        })
+      });
+
+      dataLoad = ( list_data ) => {
+        $("#smb_current_path").text(smb_current_path);
+        $("#smb-dir-list *").remove();
+        var list = list_data;
+        var tmp = "";
+        for( var i=0; i<list.length; i++ ){
+          if( list[i].name === "" ){ continue; }
+          if( smb_current_path == "/" && i==1 ){ continue; }
+          var btn_color = "";
+          if( list[i].dir ){ 
+            tmp += "<button class=\"list-group-item list-group-item-action bg-secondary text-white\" onclick=\"handleShowSmbDir('"+list[i].name+"')\">"+list[i].name+"</button>";
+          } else {
+            tmp += "<button type=\"button\" class=\"list-group-item list-group-item-action\">"+list[i].name+"</button>";
+          }
+        }
+        $("#smb-dir-list").append(tmp);
+      }
+      FavoriteLoad = ( data, type ) => {
+        $("#"+type+"-button-favorite *").remove();
+        var tmp = "";
+        for( var i=0; i<data.length; i++ ){
+          if( data[i] === "" ){ continue; }
+          if( type == "smb" ){
+            tmp += "<button type=\"button\" class=\"list-group-item list-group-item-action bg-info text-white w-100\" onclick='handleShowSmbDir(\""+data[i]+"\",true)'>"+data[i]+"</button>";
+          } else {
+            tmp += "<button type=\"button\" class=\"list-group-item list-group-item-action bg-info text-white w-100\" onclick='sftpDataMake(\""+data[i]+"\", true)'>"+data[i]+"</button>";
+          }
+        }
+        $("#"+type+"-button-favorite").append(tmp);
+
+        $("#"+type+"-favorite *").remove();
+        if( data.indexOf(type == "smb" ? smb_current_path : sftp_current_path) >= 0 ){
+          $("#"+type+"-favorite").append("<i class=\"fas fa-star\"></i>");
+        } else {
+          $("#"+type+"-favorite").append("<i class=\"far fa-star\"></i>");
+        }
+      }
+      /* S: sftp */
+      sftpDataMake = ( name, flag ) =>{
+        if( file_move_flag ){ return; }
+        $("#sftp-block").fadeIn(200);
+        var s = new Object();
+        s['act'] = "get_dir";
+        s['name'] = name;
+        s['path'] = sftp_current_path;
+        s['flag'] = flag;
+        $.ajax({
+          "data":s,
+          "url":"/sftp",
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+            if( data.success ){
+              sftp_interval = setInterval(handleSftpDir, 300);
+              sftp_current_path = data.folder;
+            }
+          },
+          complete:function(){
+          }
+        });
+      }
+      handleSftpDir = () =>{
+        var s = new Object();
+        s['act'] = "get_info";
+        $.ajax({
+          "data":s,
+          "url":"/sftp",
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+           $("#sftp-block").fadeOut(200);
+            clearInterval(sftp_interval);
+            sftp_interval = null;
+            sftpButtonMake( data.data );
+            $("#sftp_current_path").text(sftp_current_path);
+            FavoriteLoad( data.favorite, "sftp" );
+          },
+          complete:function(){  
+          }
+        });
+      }
+      sftpButtonMake = ( data ) =>{
+        $("#sftp_current_path").text(smb_current_path);
+        $("#sftp-dir-list *").remove(); 
+        
+        var idx = 0;
+        for( var i=0; i<data.length; i++ ){
+          var tmp = "";
+          if( data[i].name === "lost+found" ){ continue; }
+          if( sftp_current_path == "/home" && i==0 ){ continue; }
+          var btn_color = "";
+          tmp += "<div class=\"btn-group\" role=\"group\" aria-label=\"Button group with nested\">";
+          if( data[i].dir ){
+            tmp += "<button type=\"button\" class=\"list-group-item list-group-item-action bg-secondary text-white\" onclick=\"sftpDataMake('"+data[i].name+"', false)\">"+data[i].name+"</button>";
+          } else {
+            tmp += "<button type=\"button\" class=\"list-group-item list-group-item-action\">"+data[i].name+"</button>";
+          }
+          if( data[i].name !== ".." ){
+            tmp += "<button type=\"button\" id=\"chk"+idx+"\" class=\"list-group-item list-group-item-action chk-btn wx-51\" onclick=\"handleButtonSelect($(this).prop('id'))\" value=\"false\"><i class=\"fas fa-check text-white\"></i></button>";
+            idx++;
+          }
+          tmp += "</div>";
+          $("#sftp-dir-list").append(tmp);
+          $("#chk"+(idx-1)).data("name",data[i].name);
+          $("#chk"+(idx-1)).data("dir",data[i].dir);
+        }
+      }
+      /* E: sftp */
+
+      /* S: Samba */
+      handleShowSmbDir = ( name, flag ) => {
+        if( file_move_flag ){ return; }
+        $("#smb-block").fadeIn(200);
+        if( flag == undefined ){
+          flag = false;
+        }
+        var s = new Object();
+        s['act'] = "get_dir";
+        s['path'] = smb_current_path;
+        s['name'] = name;
+        s['flag'] = flag;
+
+        $.ajax({
+          "data":s,
+          "url":"/smb",
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+            $("#smb-block").fadeOut(200);
+            if( data.folder == "/" ){
+              smb_current_path = "";
+            } else {
+              smb_current_path = data.folder;
+            }
+            dataLoad( data.list );
+            FavoriteLoad( data.favorite, "smb" );
+          },
+          complete:function(){
+          }
+        });
+      }
+      handleFavorite = ( url ) => {
+        if( file_move_flag ){ return; }
+        var s = new Object();
+        s['act'] = "favorite";
+        switch( url ){
+          case "smb":
+            s['path'] = smb_current_path;
+            break;
+          case "sftp":
+            s['path'] = sftp_current_path;
+            break;
+        }
+      
+        $.ajax({
+          "data":s,
+          "url":"/"+url,
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+            FavoriteLoad( data, url );
+          },
+          complete:function(){
+          }
+        });
+      }
+      /* E: Samba */
+
+      /* S: file move */
+      handleButtonSelect = ( idx ) =>{
+        if( file_move_flag ){ return; }
+        var id_ = "#"+idx;
+        if( $(id_).val() === "false" ){
+          for( var i=0; i<$("#sftp-dir-list > div > button > i").length; i++ ){
+            $("#chk"+i).removeClass("bg-success");
+            $("#chk"+i).val("false");
+            $("#chk"+i).data("chk", false);
+          }
+          $("#file-name").val($(id_).data("name"));
+          $(id_).addClass("bg-success");
+          $(id_).val("true");
+          $(id_).data("chk", true);
+        } else {
+          $("#file-name").val("");
+          $(id_).removeClass("bg-success");
+          $(id_).val("false");
+          $(id_).data("chk", false);
+        }
+      }
+      handleGetFile = () =>{
+        if( file_move_flag ){ return; }
+        var chk_len = $("#sftp-dir-list > div > button > i").length;
+        var select_num = null;
+
+        for( var i=0; i<chk_len; i++ ){
+          if( $("#chk"+i).data("chk") ){
+            select_num = i;
+            break;
+          }
+        }
+        if( select_num == null ){
+          alert("하나를 선택해주세요.");
+          return;
+        }
+        var s = new Object();
+        s['act'] = "get_file";
+        s['path'] = sftp_current_path;
+        s['name'] = $("#chk"+select_num).data("name");
+        s['dir'] = $("#chk"+select_num).data("dir");
+        s['smb_current_path'] = smb_current_path;
+        s['filename'] = $("#file-name").val();
+        $.ajax({
+          "data":s,
+          "url":"/file",
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+            copy_interval = setInterval(handleChkDownload, 300);
+            copyBtnCss(true);
+            file_move_flag = true;
+          },
+          complete:function(){
+          }
+        });
+      }
+      handleChkDownload = () =>{
+        var s = new Object();
+        s['act'] = "download_check";
+        s['smb_current_path'] = smb_current_path;
+        s['filename'] = $("#file-name").val();
+         $.ajax({
+          "data":s,
+          "url":"/file",
+          "dataType":"json",
+          "type":"POST",
+          success:function(data){
+            if( data.success ){
+              if( !data.down_process ){
+                if( !data.up_process ){
+                  $("#div-progress").slideUp();
+                  $("#complete-progress").css({"width":"0%"});
+                  clearInterval(copy_interval);
+                  copy_interval = null;
+                  file_move_flag = false;
+                  copyBtnCss(false);
+                  handleShowSmbDir(smb_current_path,true);
+                } else {
+                  $("#div-progress").slideDown("fast");
+                  $("#div-progress").css({"display":"flex"});
+                  var width_ = data.progress+"%";
+                  $("#complete-progress").css({"width":width_});
+                }
+              }
+            }
+          },
+          complete:function(){
+          }
+        });
+      }
+      /* E: file move */
+      copyBtnCss = ( flag_ )=>{
+        if( flag_ ){
+          //copy processing...
+          $("#btn-move").addClass("disabled");
+          $("#file-name").addClass("disabled");
+          $("#copy-default").hide();
+          $("#copy-spinner").show();
+          $("button").addClass("disabled");
+          $("#file-name").prop("readonly",true);
+        } else {
+          $("#btn-move").removeClass("disabled");
+          $("#file-name").removeClass("disabled");
+          $("#copy-default").show();
+          $("#copy-spinner").hide();
+          $("button").removeClass("disabled");
+          $("#file-name").prop("readonly",false);
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-light">
+    <div class="container">
+      <div class="row">
+        <div class="col w-35">
+          <div id="smb-block">
+            <div class="d-flex justify-content-center">
+              <div id="smb-spinner" class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-primary p-5 text-center text-white align-bottom hx-200">
+            <span class="title-path">Current : <%=smb_default%></span><br><span id="smb_current_path"></span><button type="button" id="smb-favorite" class="btn btn-light text-warning ml-3" onclick="handleFavorite('smb')"></button>
+          </div>
+          <div id="smb-favorite-list" class="btn-group-vertical w-100">
+            <div class="div-favorite text-dark w-100 mt-1">
+              <button type="button" id="btn-smb-f" class="btn btn-warning text-warning w-100"><i class="fas fa-star text-light"></i></button>
+            </div>
+            <div id="smb-button-favorite" class="list-group mb-1 w-100"></div>
+          </div>
+
+          <div id="smb-dir-list" class="list-group mb-5"></div>
+        </div>
+        <div class="col w-35">
+          <div id="sftp-block">
+            <div class="d-flex justify-content-center">
+              <div id="sftp-spinner" class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-primary p-5 text-center text-white align-bottom hx-200">
+            <span class="title-path">Current : <%=sftp_default%></span><br><span id="sftp_current_path"></span><button type="button" id="sftp-favorite" class="btn btn-light text-warning ml-3" onclick="handleFavorite('sftp')"></button>
+          </div>
+          <div id="sftp-favorite-list " class="btn-group-vertical w-100">
+            <div class="div-favorite text-dark w-100 mt-1">
+              <button type="button" id="btn-sftp-f" class="btn btn-warning text-warning w-100"><i class="fas fa-star text-light"></i></button>
+            </div>
+            <div id="sftp-button-favorite" class="list-group mb-1 w-100"></div>
+          </div>
+          <div class="input-group mt-2 mb-1">
+            <div class="input-group-prepend">
+              <span class="input-group-text" id="basic-addon3">Dir/File Name</span>
+            </div>
+            <input type="text" class="form-control" id="file-name" aria-describedby="basic-addon3">
+          </div>
+          <button type="button" id="btn-move" class="btn btn-outline-success mb-2 mt-1 w-100" onclick="handleGetFile()">
+            <div id="copy-default">
+              <span id="file-icon">
+                <i class="far fa-arrow-alt-circle-left"></i><i class="far fa-copy"></i>
+              </span>
+              File Copy
+            </div><div id="copy-spinner">
+              <div class="spinner-border text-success btn-spinner" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+            </div>
+          </button>
+          <div id="div-progress" class="progress mb-2">
+            <div id="complete-progress" class="progress-bar progress-bar-striped bg-success progress-bar-animated" role="progressbar" aria-valuenow="" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <div id="sftp-dir-list" class="list-group mb-5"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
